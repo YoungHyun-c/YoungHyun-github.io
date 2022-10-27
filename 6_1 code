@@ -1,0 +1,173 @@
+#1. 데이터 확인 -> 15개의 이미지 데이터 각 폴더에 저장.
+#2. matplotlib 라이브러리 불러오기,  numpy 함수 사용하여 이미지를 불러 확인
+#3.1. 얼굴 이미지 읽고 확인해 보기  -> imread로 이미지를 읽고, resize를 사용하여 이미지 크기 변경, 기울기의 히스토그램을 구하는 hog함수 사용.
+#3.2. 내 얼굴 이미지 읽고 확인해보기
+#4. 얼굴 이미지의 특징 데이터 구하기 -> 대표적인 방법으로 기울기 히스토그램을 사용, 히스토그램 이미지를 담을 배열과 디스크립터를 담을 배열을 각각 준비.
+#5. 사람 얼굴이 아닌 이미지의 특징 벡터 준비
+#6. 학습을 위한 데이터 만들어 학습하기 -> 얼굴 이미지의 특정 벡터와 동물 이미지의 특징을 모아 분류하고, 확인하기
+#7. 새로운 데이터에 적용해보기 -> 학습이 잘 이루어졌는지 확인하기 위해 학습 과정에서 본 적이 없는 데이터를 얼마나 잘 분류하였는지 확인.
+
+#1.데이터 확인 -> 15개의 이미지 데이터 각 폴더에 저장. -> https://github.com/YoungHyun-c/YoungHyun-github.io/
+
+#2. matplotlib 라이브러리 불러오기,  numpy 함수 사용하여 이미지를 불러 확인
+import matplotlib.pyplot as plt
+import numpy as np
+
+from skimage.io import imread
+from skimage.transform import resize
+from skimage.feature import hog
+
+#3.1. 얼굴 이미지 읽고 확인해 보기  -> imread로 이미지를 읽고, resize를 사용하여 이미지 크기 변경, 기울기의 히스토그램을 구하는 hog함수 사용.
+url = 'https://github.com/YoungHyun-c/YoungHyun-github.io/raw/main/faces/'
+
+face_images = []
+
+for i in range(15):
+  file = url + 'img{0:02d}.jpg'.format(i+1)
+  img = imread(file)
+  img = resize(img, (64, 64))
+  face_images.append(img)
+  
+
+#3.2. 내 얼굴 이미지 읽고 확인해보기
+url = 'https://github.com/YoungHyun-c/YoungHyun-github.io/raw/main/myface/'
+
+face_images = []
+
+for i in range(15):
+  file = url + 'img{0:02d}.jpg'.format(i+1)
+  img = imread(file)
+  img = resize(img, (64, 64))
+  face_images.append(img)
+
+def plot_images(nRow, nCol, img):
+  fig = plt.figure()
+  fig, ax = plt.subplots(nRow, nCol, figsize = (nCol, nRow))
+  for i in range(nRow):
+    for j in range(nCol):
+      if nRow <= 1: axis = ax[j]
+      else:         axis = ax[i, j]
+      axis.get_xaxis().set_visible(False)
+      axis.get_yaxis().set_visible(False)
+      axis.imshow(img[i*nCol+j])
+
+plot_images(3,5, face_images)
+  
+  
+#4. 얼굴 이미지의 특징 데이터 구하기 -> 대표적인 방법으로 기울기 히스토그램을 사용, 히스토그램 이미지를 담을 배열과 디스크립터를 담을 배열을 각각 준비.
+face_hogs = []
+face_features = []
+
+for i in range(15):
+    hog_desc, hog_image = hog(face_images[i], orientations=8, pixels_per_cell=(16, 16), cells_per_block=(1, 1), visualize=True, multichannel=True)
+    face_hogs.append(hog_image)
+    face_features.append(hog_desc)
+
+plot_images(3, 5, face_hogs)
+
+print(face_features[0].shape)
+
+fig = plt.figure()
+fig, ax = plt.subplots(3,5, figsize = (10,6))
+for i in range(3):
+    for j in range(5):
+        ax[i, j].imshow(resize(face_features[i*5+j], (128,16)))
+        
+#5. 사람 얼굴이 아닌 이미지의 특징 벡터 준비
+url = 'https://github.com/YoungHyun-c/YoungHyun-github.io/raw/main/animals/'
+
+animal_images = []
+
+for i in range(15):
+    file = url + 'img{0:02d}.jpg'.format(i+1)
+    img = imread(file)
+    img = resize(img, (64,64))
+    animal_images.append(img)
+
+plot_images(3, 5, animal_images)
+
+animal_hogs = []
+animal_features = []
+
+for i in range(15):
+    hog_desc, hog_image = hog(animal_images[i], orientations=8, pixels_per_cell=(16, 16), cells_per_block=(1, 1), visualize=True, multichannel=True)
+    animal_hogs.append(hog_image)
+    animal_features.append(hog_desc)
+
+plot_images(3, 5, animal_hogs)
+
+fig = plt.figure()
+fig, ax = plt.subplots(3,5, figsize = (10,6))
+for i in range(3):
+ for j in range(5):
+   ax[i, j].imshow(resize(animal_features[i*5+j], (128,16)))
+   
+#6. 학습을 위한 데이터 만들어 학습하기 -> 얼굴 이미지의 특정 벡터와 동물 이미지의 특징을 모아 분류하고, 확인하기
+X, y = [], []
+
+for feature in face_features:
+    X.append(feature)
+    y.append(1)
+for feature in animal_features:
+    X.append(feature)
+    y.append(0)
+
+fig = plt.figure()
+fig, ax = plt.subplots(6,5, figsize = (10,6))
+for i in range(6):
+ for j in range(5):
+   ax[i, j].imshow(resize(X[i*5+j], (128,16)),interpolation='nearest')
+print(y) 
+
+from sklearn.svm import SVC
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
+
+polynomial_svm_clf = Pipeline([
+    ("scaler", StandardScaler()),
+    ("svm_clf", SVC(C=1, kernel = 'poly', degree=5, coef0=10.0))
+ ])
+polynomial_svm_clf.fit(X, y)
+
+yhat = polynomial_svm_clf.predict(X)
+print(yhat)
+
+#7. 새로운 데이터에 적용해보기 -> 학습이 잘 이루어졌는지 확인하기 위해 학습 과정에서 본 적이 없는 데이터를 얼마나 잘 분류하였는지 확인.
+url = 'https://github.com/YoungHyun-c/YoungHyun-github.io/raw/main/test_data/'
+
+test_images = []
+
+for i in range(15):
+    file = url + 'img{0:02d}.jpg'.format(i+1)
+    img = imread(file)
+    img = resize(img, (64,64))
+    test_images.append(img)
+
+plot_images(3, 5, test_images)
+
+test_hogs = []
+test_features = []
+for i in range(15):
+    hog_desc, hog_image = hog(test_images[i], orientations=8, pixels_per_cell=(16, 16), cells_per_block=(1, 1), visualize=True, multichannel=True)
+    test_hogs.append(hog_image)
+    test_features.append(hog_desc)
+
+plot_images(3, 5, test_hogs)
+
+fig = plt.figure()
+fig, ax = plt.subplots(3,5, figsize = (10,4))
+for i in range(3):
+ for j in range(5):
+   ax[i, j].imshow(resize(test_features[i*5+j], (128,16)), interpolation='nearest')
+   
+test_result = polynomial_svm_clf.predict(test_features)
+print(test_result)
+
+fig = plt.figure()
+fig, ax = plt.subplots(3,5, figsize = (10,4))
+for i in range(3):
+    for j in range(5):
+        ax[i, j].get_xaxis().set_visible(False)
+        ax[i, j].get_yaxis().set_visible(False)
+        if test_result[i*5+j] == 1:
+            ax[i, j].imshow(test_images[i*5+j],interpolation='nearest')
